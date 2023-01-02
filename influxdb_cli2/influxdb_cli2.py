@@ -4,8 +4,8 @@ from influxdb_client.client.write_api import SYNCHRONOUS, ASYNCHRONOUS
 from datetime import datetime, timedelta, timezone
 
 class influxdb_cli2:
-    def __init__(self, influxdb_url, token, org, bucket):
-        self.influxdb_client = influxdb_client.InfluxDBClient(url=influxdb_url, token=token, org=org, debug=False)
+    def __init__(self, influxdb_url, token, org, bucket, debug = False):
+        self.influxdb_client = influxdb_client.InfluxDBClient(url=influxdb_url, token=token, org=org)
         self.bucket=bucket
         self.org = org
         self.debug = debug
