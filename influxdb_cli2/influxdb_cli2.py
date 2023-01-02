@@ -23,7 +23,8 @@ class influxdb_cli2:
 
         if force == None:
             if float(value) == 0.0:
-                print("discarding value, since zero")
+                if self.debug:
+                    print("discarding value, since zero")
                 return
 
         write_data = [
