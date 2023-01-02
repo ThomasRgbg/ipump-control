@@ -5,9 +5,10 @@ from datetime import datetime, timedelta, timezone
 
 class influxdb_cli2:
     def __init__(self, influxdb_url, token, org, bucket):
-        self.influxdb_client = influxdb_client.InfluxDBClient(url=influxdb_url, token=token, org=org)    
+        self.influxdb_client = influxdb_client.InfluxDBClient(url=influxdb_url, token=token, org=org, debug=False)
         self.bucket=bucket
         self.org = org
+        self.debug = debug
 
         self.write_api = self.influxdb_client.write_api(write_option=SYNCHRONOUS)
 
@@ -17,7 +18,8 @@ class influxdb_cli2:
         if timestamp == None:
             timestamp = datetime.utcnow()
 
-        # print("Got sample: location: {0}, measurement: {1}, value {2}, timestamp {3}".format(location,measurement,value, timestamp))
+        if self.debug:
+            print("Got sample: location: {0}, measurement: {1}, value {2}, timestamp {3}".format(location,measurement,value, timestamp))
 
         if force == None:
             if float(value) == 0.0:
@@ -34,9 +36,10 @@ class influxdb_cli2:
                     'value': float(value)
                 },
                 'time' : timestamp.isoformat()
-            } 
+            }
         ]
-        # print(write_data)
+        if self.debug:
+            print("write to influxdb: {0}".format(write_data))
         self.write_api.write(self.bucket, self.org , write_data)
 
 
@@ -53,9 +56,11 @@ class influxdb_cli2:
         |> range(start: {1}Z, stop: {2}Z)\
         |> filter(fn:(r) => r._measurement == "{3}")\
         |> filter(fn:(r) => r.location == "{4}")'.format(self.bucket,start_date,end_date,measurement,location)
-        # print(query)
+        if self.debug:
+            print("Query: {0}".format(query))
         result = query_api.query(query=query)
         result = result.to_values(columns=['_time', 'location', '_measurement', '_value' ])
-        # print(result)
+        if self.debug:
+            print("Result: {0}".format(result))
         return result
 
