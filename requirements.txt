@@ -1,2 +1,3 @@
 pyModbusTCP
 influxdb-client
+paho-mqtt
