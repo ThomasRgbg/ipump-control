@@ -113,7 +113,7 @@ class ipump_controller:
                 self.ipump.write_data("Betriebsart System", 0)
                 if self.betriebsart == 10:
                     self.mqtt.publish(self.mqtt_topic + "/luftstufe_set", 0)
-            elif cur_price <= preis_lim_heiz and cur_price >= self.preis_lim_wasser:
+            elif cur_price <= self.preis_lim_heiz and cur_price >= self.preis_lim_wasser:
                 print("Heizung an")
                 self.ipump.write_data("Betriebsart System", 5)
                 if self.betriebsart == 10:
