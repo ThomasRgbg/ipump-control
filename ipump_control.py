@@ -102,7 +102,7 @@ class ipump_controller:
         # 5 - Only Heating
         if self.betriebsart >= 0 and self.betriebsart <= 5:
             # TODO: Rewrite mode only when changed (also below)
-            self.ipump.write_data("Betriebsart System", betriebsart)
+            self.ipump.write_data("Betriebsart System", self.betriebsart)
             
         # Price-depdendent operation
         # 10 - IPump + Lüftung (TODO: Split out Lüftung)
