@@ -42,15 +42,15 @@ class IPump:
             #"Status Verdichter 2" : [1101, "uchar"],
             #"Status Verdichter 3" : [1102, "uchar"],
             #"Status Verdichter 4" : [1103, "uchar"],
-            "Status Ladepumpe M73" : [1104, "word"],
-            "Status Zwischenkreispumpe M16" : [1105, "word"],
-            "Status Wärmequellen/Grundwasserpumpe M15" : [1106, "word"],
-            "Status ISC Kältespeicherpumpe M84" : [1108, "word"],
-            "Status ISC Rückkühlpumpe M17" : [1109, "word"],
-            "Umschaltventil Heizkreis Heizen/Kühlen M61" : [1110, "word"],
-            # "Umschaltventil Speicher Heizen/Kühlen M62" : [1111, "word"],
-            "Umschaltventil Heizen/Warmwasser M63" : [1112, "word"],
-            #"Umschaltventil Heizen/Kühlen M74" : [1113, "word"],
+            "Status Ladepumpe M73" : [1104, "uint16"],
+            "Status Zwischenkreispumpe M16" : [1105, "uint16"],
+            "Status Wärmequellen/Grundwasserpumpe M15" : [1106, "uint16"],
+            "Status ISC Kältespeicherpumpe M84" : [1108, "uint16"],
+            "Status ISC Rückkühlpumpe M17" : [1109, "uint16"],
+            "Umschaltventil Heizkreis Heizen/Kühlen M61" : [1110, "uint16"],
+            # "Umschaltventil Speicher Heizen/Kühlen M62" : [1111, "uint16"],
+            "Umschaltventil Heizen/Warmwasser M63" : [1112, "uint16"],
+            #"Umschaltventil Heizen/Kühlen M74" : [1113, "uint16"],
             "Anzahl laufende Verdichterstufen Heizen" : [1150, "uchar"],
             "Anzahl laufende Verdichterstufen Kühlen" : [1151, "uchar"],
             "Anzahl laufende Verdichterstufen Warmwasser" : [1152, "uchar"],
@@ -163,12 +163,12 @@ class IPump:
             # print("read_uchar() - error")
             return False
 
-    def read_word(self, addr):
+    def read_uint16(self, addr):
         regs = self.modbus.read_holding_registers(addr, 1)
         if regs:
             return int(regs[0])
         else:
-            print("read_word() - error")
+            print("read_uint16() - error")
             return False
 
     def read_float(self, addr):
@@ -185,8 +185,8 @@ class IPump:
         
         if datatype == "float":
             return self.read_float(register)
-        elif datatype == "word":
-            return self.read_word(register)
+        elif datatype == "uint16":
+            return self.read_uint16(register)
         elif datatype == "uchar":
             return self.read_uchar(register)
         else:
