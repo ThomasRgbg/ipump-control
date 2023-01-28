@@ -27,7 +27,9 @@ class ipump_controller:
         self.influxdb_price_location = None
         self.incluxdb_price_measurement = None
 
-        self.betriebsart = -1
+        self.ipump_betriebsart = -1  # ipump_betriebsart = operational mode of IPump
+        self.something_changed = False
+        self.control_state = -1      # state of the statemachine  
         self.preis_lim_heiz = 0.00
         self.preis_lim_wasser = 0.00
 
@@ -66,77 +68,102 @@ class ipump_controller:
         
     def mqtt_on_connect(self, client, userdata, flags, rc):
         # print("Connection returned result: " + str(rc))
-        client.subscribe(self.mqtt_topic + "/betriebsart_set", 1)
+        client.subscribe(self.mqtt_topic + "/control_state_set", 1)
         client.subscribe(self.mqtt_topic + "/preis_lim_heiz_set", 1)
         client.subscribe(self.mqtt_topic + "/preis_lim_wasser_set", 1)
 
     # The callback for when a PUBLISH message is received from the server.
     def mqtt_on_message(self, client, userdata, msg):
         print(msg.topic+": {0}".format(float(msg.payload)) )
-        if msg.topic == self.mqtt_topic + "/betriebsart_set":
+        if msg.topic == self.mqtt_topic + "/control_state_set":
             if int(msg.payload) >= -1 and int(msg.payload) <= 11:
                 print("set Betriebsart because of MQTT msg")
-                self.betriebsart = int(msg.payload)
+                self.control_state = int(msg.payload)
+                self.something_changed = True
         if msg.topic == self.mqtt_topic + "/preis_lim_heiz_set":
             if float(msg.payload) >= 0 and float(msg.payload) <= 1.0:
                 print("set preis_lim_heiz because of MQTT msg")
                 self.preis_lim_heiz = float(msg.payload)
+                self.something_changed = True
         if msg.topic == self.mqtt_topic + "/preis_lim_wasser_set":
             if float(msg.payload) >= 0 and float(msg.payload) <= 1.0:
                 print("set preis_lim_wasser because of MQTT msg")
                 self.preis_lim_wasser = float(msg.payload)
+                self.something_changed = True
 
     def run_1control_loop(self):
         print("--------------------")
         cur_price = self.get_latest_price()
         print("Current price: {0}".format(cur_price))
-        print("Betriebsart: {0}".format(self.betriebsart))
+        print("Betriebsart (should): {0}".format(self.ipump_betriebsart))
+        print("Betriebsart (is): {0}".format(int(self.ipump.read_data("Betriebsart System"))))
+        print("Control state: {0}".format(self.control_state))
         print("Preis_lim_Wasser: {0}".format(self.preis_lim_wasser))
         print("Preis_lim_Heiz: {0}".format(self.preis_lim_heiz))
 
-        # Manual control, set mode(betriebsart) directly:
+        # Control state inputs:
+        # -1 - Do nothing, keep passive
+
+        # Manual control, set mode(ipump_betriebsart) directly:
         # 0 - Standby
         # 1 - Automatic (All on)
         # 2 - Holiday
         # 4 - Only Water
         # 5 - Only Heating
-        if self.betriebsart >= 0 and self.betriebsart <= 5:
-            # TODO: Rewrite mode only when changed (also below)
-            self.ipump.write_data("Betriebsart System", self.betriebsart)
-            
-        # Price-depdendent operation
+        
+        # Price-depdendent operation:
         # 10 - IPump + Lüftung (TODO: Split out Lüftung)
         # 11 - only IPump, ignore Lüftung
-        if self.betriebsart == 10 or self.betriebsart == 11:
+        
+        
+        # First check if IPump is still in the state it should be. 
+        # If not, likely somebody changed mode on the display of the ipump, go do state -1
+        if int(self.ipump.read_data("Betriebsart System")) != self.ipump_betriebsart:
+            print("Found Ipump in unexected state, go to do-nothing-mode")
+            self.ipump_betriebsart = int(self.ipump.read_data("Betriebsart System"))
+            self.control_state = -1 
+
+        if self.control_state >= 0 and self.control_state <= 5:
+            # TODO: Rewrite mode only when changed (also below)
+            print("Set static to {0}".format(self.control_state))
+            self.ipump_betriebsart = self.control_state
+            self.ipump.write_data("Betriebsart System", self.ipump_betriebsart)
+            
+        if self.control_state == 10 or self.control_state == 11:
             if cur_price == None:
                 print("No price information available, all off")
-                self.ipump.write_data("Betriebsart System", 0)
-                if self.betriebsart == 10:
+                self.ipump_betriebsart = 0
+                self.ipump.write_data("Betriebsart System", self.ipump_betriebsart)
+                if self.control_state == 10:
                     self.mqtt.publish(self.mqtt_topic + "/luftstufe_set", 0)
             elif cur_price <= self.preis_lim_heiz and cur_price >= self.preis_lim_wasser:
                 print("Heizung an")
-                self.ipump.write_data("Betriebsart System", 5)
-                if self.betriebsart == 10:
+                self.ipump_betriebsart = 5
+                self.ipump.write_data("Betriebsart System", self.ipump_betriebsart)
+                if self.control_state == 10:
                     self.mqtt.publish(self.mqtt_topic + "/luftstufe_set", 1)
             elif cur_price >= self.preis_lim_heiz and cur_price <= self.preis_lim_wasser:
                 print("Wasser an")
-                self.ipump.write_data("Betriebsart System", 4)
-                if self.betriebsart == 10:
+                self.ipump_betriebsart = 4
+                self.ipump.write_data("Betriebsart System", self.ipump_betriebsart)
+                if self.control_state == 10:
                     self.mqtt.publish(self.mqtt_topic + "/luftstufe_set", 1)
             elif cur_price <= self.preis_lim_heiz and cur_price <= self.preis_lim_wasser:
                 print("Alles an")
-                self.ipump.write_data("Betriebsart System", 1)
-                if self.betriebsart == 10:
+                self.ipump_betriebsart = 1
+                self.ipump.write_data("Betriebsart System", self.ipump_betriebsart)
+                if self.control_state == 10:
                     self.mqtt.publish(self.mqtt_topic + "/luftstufe_set", 1)
             else:
                 print("Alles aus")
-                self.ipump.write_data("Betriebsart System", 0)
-                if self.betriebsart == 10:
+                self.ipump_betriebsart = 0
+                self.ipump.write_data("Betriebsart System", self.ipump_betriebsart)
+                if self.control_state == 10:
                     self.mqtt.publish(self.mqtt_topic + "/luftstufe_set", 0)
         
         # Dump status to MQTT for direct display (but will be also recorded into influxdb by a different entity)
-        self.mqtt.publish(self.mqtt_topic + "/betriesbart_sys_m", int(self.ipump.read_data("Betriebsart System")))
-        self.mqtt.publish(self.mqtt_topic + "/betriesbart_sys_s", int(self.betriebsart))
+        self.mqtt.publish(self.mqtt_topic + "/betriesart_sys", int(self.ipump.read_data("Betriebsart System")))
+        self.mqtt.publish(self.mqtt_topic + "/control_state", int(self.control_state))
         self.mqtt.publish(self.mqtt_topic + "/preis_lim_heiz", float(self.preis_lim_heiz))
         self.mqtt.publish(self.mqtt_topic + "/preis_lim_wasser", float(self.preis_lim_wasser))
  
@@ -225,7 +252,11 @@ if __name__ == "__main__":
         ipump_control.dump_db_room_status(rooms)
         
         print("before sleep")
-        time.sleep(120)
+        for i in range(int(120/6)):
+            time.sleep(6)
+            if ipump_control.something_changed:
+                ipump_control.something_changed = False
+                break
         print("after sleep")
 
         
