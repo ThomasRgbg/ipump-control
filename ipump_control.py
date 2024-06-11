@@ -192,7 +192,7 @@ class ipump_controller:
 
         if self.ipump.read_data("Aktuelle Leistungsaufnahme Wärmepumpe") > 0:
             efficency = self.ipump.read_data("Wärmemenge Momentanleistung") / self.ipump.read_data("Aktuelle Leistungsaufnahme Wärmepumpe")
-            if efficency != 0:
+            if efficency != 0 and efficency < 10.0:
                 self.influxdb.write_sensordata("heizung", "heizung_efficency",abs(efficency))
         # else:
         #     self.influxdb.write_sensordata("heizung", "heizung_efficency",0.0)
