@@ -149,7 +149,7 @@ class IPump:
             "PV-Leistung" : [76, "float"],
             "Hausverbrauch" : [82, "float"],
             "Batterieentladung" : [84, "float"],
-            "Füllstand Batterie" : [86, "float"],
+            "Füllstand Batterie" : [86, "uint16"],
             "Aktuelle Leistungsaufnahme Wärmepumpe" : [4122, "float"],
             "Wärmemenge gesamt" : [4128, "float"],
 
@@ -219,14 +219,14 @@ class IPump:
             
     def print_raw(self):
         print("Raw read 0000-100:")
-        for i in range(4100,4150,1):
+        for i in range(410,2000,1):
             value = self.read_float(i)
             if value:
                 print("{0:d}: {1:2.3f}".format(i, value))
                 # print("{0:d}: {1:d}".format(i, value))
             #else:
             #    print("{0:d}: error".format(i))
-            time.sleep(1)
+            time.sleep(0.01)
         
 
 
@@ -261,10 +261,10 @@ if __name__ == "__main__":
         # pump.write_uint16(1005, 2)
 
         # print(pump.read_data("Aussentemperatur B32"))
-        print(pump.read_data("Aktueller PV-Ueberschuss"))
+        #print(pump.read_data("Aktueller PV-Ueberschuss"))
         
 
-        # pump.print_all()
+        pump.print_all()
         # pump.print_raw()
         
     
