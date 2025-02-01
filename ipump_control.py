@@ -76,7 +76,7 @@ class ipump_controller:
     def mqtt_on_message(self, client, userdata, msg):
         print(msg.topic+": {0}".format(float(msg.payload)) )
         if msg.topic == self.mqtt_topic + "/control_state_set":
-            if int(msg.payload) >= -1 and int(msg.payload) <= 11:
+            if int(msg.payload) >= -1 and int(msg.payload) <= 12:
                 print("set Betriebsart because of MQTT msg")
                 self.control_state = int(msg.payload)
                 self.something_changed = True
@@ -115,6 +115,8 @@ class ipump_controller:
         # 10 - IPump + Lüftung (TODO: Split out Lüftung)
         # 11 - only IPump, ignore Lüftung
         
+        # 12 - Stop Ipump as soon battery is empty
+        
         
         # First check if IPump is still in the state it should be. 
         # If not, likely somebody changed mode on the display of the ipump, go do state -1
@@ -129,7 +131,7 @@ class ipump_controller:
             self.ipump_betriebsart = self.control_state
             self.ipump.write_data("Betriebsart System", self.ipump_betriebsart)
             
-        if self.control_state == 10 or self.control_state == 11:
+        elif self.control_state == 10 or self.control_state == 11:
             if cur_price == None:
                 print("No price information available, all off")
                 self.ipump_betriebsart = 0
@@ -160,6 +162,17 @@ class ipump_controller:
                 self.ipump.write_data("Betriebsart System", self.ipump_betriebsart)
                 if self.control_state == 10:
                     self.mqtt.publish(self.mqtt_topic + "/luftstufe_set", 0)
+
+        elif self.control_state == 12:
+            if int(self.ipump.read_data("Füllstand Batterie")) >= 16:
+                print("Heizung an")
+                self.ipump_betriebsart = 5
+                self.ipump.write_data("Betriebsart System", self.ipump_betriebsart)
+            else:
+                print("Alles aus")
+                self.ipump_betriebsart = 0
+                self.ipump.write_data("Betriebsart System", self.ipump_betriebsart)
+
         
         # Dump status to MQTT for direct display (but will be also recorded into influxdb by a different entity)
         self.mqtt.publish(self.mqtt_topic + "/betriesart_sys", int(self.ipump.read_data("Betriebsart System")))
