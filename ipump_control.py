@@ -165,11 +165,11 @@ class ipump_controller:
 
         elif self.control_state == 12:
             if int(self.ipump.read_data("Füllstand Batterie")) >= 16:
-                print("Heizung an")
-                self.ipump_betriebsart = 5
+                print("Batterie ok, Alles an, {0}%".format(int(self.ipump.read_data("Füllstand Batterie"))))
+                self.ipump_betriebsart = 1
                 self.ipump.write_data("Betriebsart System", self.ipump_betriebsart)
             else:
-                print("Alles aus")
+                print("Batterie leer, Alles aus, {0}%".format(int(self.ipump.read_data("Füllstand Batterie"))))
                 self.ipump_betriebsart = 0
                 self.ipump.write_data("Betriebsart System", self.ipump_betriebsart)
 
