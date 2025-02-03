@@ -164,14 +164,16 @@ class ipump_controller:
                     self.mqtt.publish(self.mqtt_topic + "/luftstufe_set", 0)
 
         elif self.control_state == 12:
-            if int(self.ipump.read_data("Füllstand Batterie")) >= 16:
+            if int(self.ipump.read_data("Füllstand Batterie")) <= 16:
+                print("Batterie leer, Alles aus, {0}%".format(int(self.ipump.read_data("Füllstand Batterie"))))
+                self.ipump_betriebsart = 0
+                self.ipump.write_data("Betriebsart System", self.ipump_betriebsart)
+            elif int(self.ipump.read_data("Füllstand Batterie")) >= 26:
                 print("Batterie ok, Alles an, {0}%".format(int(self.ipump.read_data("Füllstand Batterie"))))
                 self.ipump_betriebsart = 1
                 self.ipump.write_data("Betriebsart System", self.ipump_betriebsart)
             else:
-                print("Batterie leer, Alles aus, {0}%".format(int(self.ipump.read_data("Füllstand Batterie"))))
-                self.ipump_betriebsart = 0
-                self.ipump.write_data("Betriebsart System", self.ipump_betriebsart)
+                print("Batterie ok, Nix aendern, {0}%".format(int(self.ipump.read_data("Füllstand Batterie"))))
 
         
         # Dump status to MQTT for direct display (but will be also recorded into influxdb by a different entity)
