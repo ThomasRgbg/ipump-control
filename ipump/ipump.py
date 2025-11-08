@@ -182,9 +182,16 @@ class IPump:
 
     def read_data(self, parameter):
         [register, datatype] = self.registers[parameter]
-        
+
         if datatype == "float":
-            return self.read_float(register)
+            value = self.read_float(register)
+
+            # Special handling in case ipump is in standby
+            if value == 10.0 and "Solltemperatur" in parameter:
+                return False
+            else:
+                return value
+
         elif datatype == "uint16":
             return self.read_uint16(register)
         elif datatype == "uchar":
